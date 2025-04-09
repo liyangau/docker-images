@@ -18,7 +18,7 @@
       ];
       forEachSupportedSystem = f: lib.genAttrs supportedSystems (system: f system);
       imageName = "fomm/netshoot";
-      imageTag = "1.0.0";
+      imageTag = "1.0.1";
       mkDockerImage =
         pkgs: targetSystem:
         let
@@ -75,8 +75,8 @@
             jq
             xh
             curl
-            doggo
-            openssl_3_3
+            dig
+            openssl
           ];
           config = {
             EntryPoint = [ "${pkgs.zsh}/bin/zsh" ];
