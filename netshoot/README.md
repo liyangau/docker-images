@@ -3,13 +3,19 @@ Tools that are included
   - unixtools.ping 
   - busybox 
   - libiconvReal 
-  - helix 
+  - [helix](https://github.com/helix-editor/helix) 
   - jq
-  - xh
+  - [xh](https://github.com/ducaale/xh)
   - curl
   - dig
   - openssl
+  - [micro](https://github.com/zyedidia/micro)
+
 ## Changelog
+
+### 1.0.2
+
+Optimize the build process and add micro editor
 
 ### 1.0.1
 

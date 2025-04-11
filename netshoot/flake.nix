@@ -18,7 +18,7 @@
       ];
       forEachSupportedSystem = f: lib.genAttrs supportedSystems (system: f system);
       imageName = "fomm/netshoot";
-      imageTag = "1.0.1";
+      imageTag = "1.0.2";
       mkDockerImage =
         pkgs: targetSystem:
         let
@@ -31,8 +31,10 @@
           fakeRootCommands = ''
             mkdir -p /data
             mkdir -p /.config/helix
+            mkdir -p /.config/micro
             echo 'DISABLE_AUTO_UPDATE=true' | cat - ${pkgs.oh-my-zsh}/share/oh-my-zsh/templates/zshrc.zsh-template > /.zshrc
-            ${pkgs.perl}/bin/perl -pi -e 's/git//g' /.zshrc
+            # Remove omz git plugin
+            sed -i 's/git//g' /.zshrc
 
             cat >> /.zshrc << EOF
             source ${pkgs.zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
@@ -66,6 +68,18 @@
             newline = "↴"
             tab = "⇥"
             EOF
+
+            cat > /.config/micro/settings.json << EOF
+            {
+              "clipboard": "external",
+              "colorscheme": "monokai-dark",
+              "mkparents": true,
+              "softwrap": true,
+              "tabmovement": true,
+              "tabsize": 2,
+              "tabstospaces": true
+            }
+            EOF
           '';
           contents = with pkgs; [
             unixtools.ping
@@ -77,6 +91,7 @@
             curl
             dig
             openssl
+            micro
           ];
           config = {
             EntryPoint = [ "${pkgs.zsh}/bin/zsh" ];
@@ -130,18 +145,24 @@
               docker push ${imageName}:${imageTag}-amd64
               docker push ${imageName}:${imageTag}-arm64
 
-              echo "Creating multi-arch manifest:"
-              docker manifest push --purge ${imageName}:${imageTag}
-              docker manifest push --purge ${imageName}:latest
-              docker manifest create ${imageName}:${imageTag} ${imageName}:${imageTag}-amd64 ${imageName}:${imageTag}-arm64
+              echo "Removing any existing manifest (safe cleanup)..."
+              docker manifest rm ${imageName}:${imageTag} || true
+              docker manifest rm ${imageName}:latest || true
+
+              echo "Creating new multi-arch ${imageTag} manifest..."
+              docker manifest create ${imageName}:${imageTag} \
+                ${imageName}:${imageTag}-amd64 \
+                ${imageName}:${imageTag}-arm64
               docker manifest annotate ${imageName}:${imageTag} ${imageName}:${imageTag}-amd64 --arch amd64
               docker manifest annotate ${imageName}:${imageTag} ${imageName}:${imageTag}-arm64 --arch arm64
-              docker manifest create ${imageName}:latest ${imageName}:${imageTag}-amd64 ${imageName}:${imageTag}-arm64
+              docker manifest push ${imageName}:${imageTag}
+
+              echo "Creating new multi-arch latest manifest..."
+              docker manifest create ${imageName}:latest \
+                ${imageName}:${imageTag}-amd64 \
+                ${imageName}:${imageTag}-arm64
               docker manifest annotate ${imageName}:latest ${imageName}:${imageTag}-amd64 --arch amd64
               docker manifest annotate ${imageName}:latest ${imageName}:${imageTag}-arm64 --arch arm64
-
-              echo "Push multi-arch manifest:"
-              docker manifest push ${imageName}:${imageTag}
               docker manifest push ${imageName}:latest
             ''
           );
